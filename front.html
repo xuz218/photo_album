@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Really Super Awesome Photo Album</title>
-    <style>
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1045.0/aws-sdk.min.js"></script>
+
+        <title>Really Super Awesome Photo Album</title>
+        <style>
         body {
             font-family: 'Arial', sans-serif;
             background-color: #f4f4f4;
@@ -78,30 +81,71 @@
             border-radius: 10px;
         }
     </style>
-</head>
+    </head>
 
-<body>
-    <div class="container">
-        <h1>Welcome to Really Super Awesome Photo Album!</h1>
-        <div class="search-bar">
-            <input type="text" placeholder="Search...">
-            <button>Search</button>
-            <button>Speak to search</button>
-        </div>
-        <form method="post" action="" enctype="multipart/form-data" id="myform">
-            <div class="centered-content">
-                <input type="text" id="labelbox" placeholder="Custom Labels">
+    <script>
+    // AWS.config.update({
+    //     region: 'us-east-1',
+    //     accessKeyId: 'AKIAR4CQAH543U4FFCIO',
+    //     secretAccessKey: 'NuOXLrqCs2R6JtQT21HyIUJRxCd+qKDXveFFhIJF'
+    // });
+
+    function uploadToS3() {
+        const labels = document.getElementById("labelbox").value;
+        var file = document.getElementById('image_input').files[0];
+        
+        var myHeaders = new Headers();
+        myHeaders.append("x-amz-meta-customLabels", labels);
+        myHeaders.append("Content-Type", file.type);
+        myHeaders.append("x-api-key", "OHZMy4Q5Ng8vJI3OnekBg7xso1y9jox54gnA6h1P");
+
+
+        if (file) {
+            var requestOptions = {
+                method: 'PUT',
+                headers: myHeaders,
+                body: file,
+                redirect: 'follow'
+            };
+
+            var promise = s3.send();
+
+            fetch("https://4ec5sdfffe.execute-api.us-east-1.amazonaws.com/test-stage?f="+file.name, requestOptions)
+            .then(response => response.text())
+            .then(result => console.log(result))
+            .catch(error => console.log('error', error));
+        } 
+        else {
+            console.log('No file chosen');
+        }
+    }
+
+
+</script>
+
+    <body>
+        <div class="container">
+            <h1>Welcome to Really Super Awesome Photo Album!</h1>
+            <div class="search-bar">
+                <input type="text" placeholder="Search...">
+                <button>Search</button>
+                <button>Speak to search</button>
             </div>
-            <div class="centered-content">
-                <!-- <label for="image_input" class="file-label">Select Image</label> -->
-                <input type="file" id="image_input" accept="image/jpg, image/png" placeholder="select files"> 
-                <button class="upload" id="upload-file" onclick="upload">Upload</button>
+            <form method="post" action enctype="multipart/form-data" id="myform">
+                <div class="centered-content">
+                    <input type="text" id="labelbox" placeholder="Custom Labels">
+                </div>
+                <div class="centered-content">
+                    <!-- <label for="image_input" class="file-label">Select Image</label> -->
+                    <input type="file" id="image_input"
+                        accept="image/jpg, image/png" placeholder="select files">
+                    <button class="upload" id="upload-file" onclick="uploadToS3()">Upload</button>
+                </div>
+            </form>
+            <div class="image-box">
+                <span></span>
             </div>
-        </form>
-        <div class="image-box">
-            <span></span>
         </div>
-    </div>
-</body>
+    </body>
 
 </html>
