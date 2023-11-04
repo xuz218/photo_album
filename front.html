@@ -1,12 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
-
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <script
-            src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1045.0/aws-sdk.min.js"></script>
-
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/aws-sdk/2.1045.0/aws-sdk.min.js"></script>
         <title>Really Super Awesome Photo Album</title>
         <style>
         body {
@@ -80,9 +77,8 @@
             justify-content: center;
             border-radius: 10px;
         }
-    </style>
+        </style>
     </head>
-
     <script>
     // AWS.config.update({
     //     region: 'us-east-1',
@@ -108,10 +104,13 @@
                 redirect: 'follow'
             };
 
-            var promise = s3.send();
-
-            fetch("https://4ec5sdfffe.execute-api.us-east-1.amazonaws.com/test-stage?f="+file.name, requestOptions)
-            .then(response => response.text())
+            fetch("https://obfr6ouan6.execute-api.us-east-1.amazonaws.com/stage1/photos-s3-bucket-b2-6998/"+file.name, requestOptions)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                    return response.text();
+            })
             .then(result => console.log(result))
             .catch(error => console.log('error', error));
         } 
@@ -119,10 +118,7 @@
             console.log('No file chosen');
         }
     }
-
-
-</script>
-
+    </script>
     <body>
         <div class="container">
             <h1>Welcome to Really Super Awesome Photo Album!</h1>
@@ -131,14 +127,23 @@
                 <button>Search</button>
                 <button>Speak to search</button>
             </div>
-            <form method="post" action enctype="multipart/form-data" id="myform">
+            <form
+                method="post"
+                action
+                enctype="multipart/form-data"
+                id="myform"
+            >
                 <div class="centered-content">
                     <input type="text" id="labelbox" placeholder="Custom Labels">
                 </div>
                 <div class="centered-content">
                     <!-- <label for="image_input" class="file-label">Select Image</label> -->
-                    <input type="file" id="image_input"
-                        accept="image/jpg, image/png" placeholder="select files">
+                    <input
+                        type="file"
+                        id="image_input"
+                        accept="image/jpeg, image/png"
+                        placeholder="select files"
+                    >
                     <button class="upload" id="upload-file" onclick="uploadToS3()">Upload</button>
                 </div>
             </form>
@@ -147,5 +152,4 @@
             </div>
         </div>
     </body>
-
 </html>
