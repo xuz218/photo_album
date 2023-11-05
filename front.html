@@ -89,19 +89,23 @@
 
         .image-box {
             width: 100%;
-            height: 200px;
+            min-height: 200px;
             border: 1px dashed #ccc;
             display: flex;
-            align-items: center;
+            flex-wrap: wrap;
+            align-items: flex-start;
             justify-content: center;
+            gap: 10px;
+            padding: 10px;
             border-radius: 10px;
+            overflow: auto;
         }
     </style>
 </head>
 
 <body>
     <div class="container">
-        <h1>Welcome to Really Super Awesome Photo Album!</h1>
+        <h1>Welcome to zx2462 and yx2812's Photo Album!</h1>
         <div class="search-bar">
             <input id="search_bar" type="text" placeholder="Search...">
             <button id="search" onclick="search()">Search</button>
@@ -156,6 +160,7 @@
 
         function search(){
             console.log("search");
+            document.querySelector('.image-box').innerHTML = '';
             var searchTerm = document.getElementById("search_bar").value;
             var apigClient = apigClientFactory.newClient({
                 apiKey: 'OHZMy4Q5Ng8vJI3OnekBg7xso1y9jox54gnA6h1P'
@@ -165,42 +170,70 @@
             };
 
             var body = {};
-            // var additionalParams = {};
+            var additionalParams = {};
 
             console.log(searchTerm);
-            apigClient.searchGet(params, body)
+            apigClient.searchGet(params, body, additionalParams)
             .then(function(result){
                 console.log('success OK');
+                console.log(result)
+                var photos = result.data.body;
+                displayImages(photos);
             })
         }
 
- 
+        function displayImages(results) {
+            var imageBox = document.querySelector('.image-box');
+            imageBox.innerHTML = ''; // Clear existing content
+
+            results.forEach(result => {
+                var img = document.createElement('img');
+                img.src = result.url;
+                img.style.maxWidth = '570px';
+                img.style.maxHeight = '380px';
+                img.style.margin = '5px';
+                imageBox.appendChild(img);
+            });
+        }
+
 
         function speakToSearch(){
+            document.querySelector('.image-box').innerHTML = '';
             if (!('webkitSpeechRecognition' in window)) {
                 alert("Sorry, your Browser does not support the Speech API");
             } else {
+                console.log("speak allowed")
                 var recognition = new webkitSpeechRecognition();
-                recognition.continuous = false; 
-                recognition.interimResults = false;
-            
-                recognition.onresult = function(event) {
-                // Get the transcript of the recognized speech
-                var transcript = event.results[0][0].transcript;
-                document.getElementById('search_bar').innerText = transcript;
-            };
-
-  
-            recognition.onend = function() {
-                console.log("Speech recognition service disconnected");
-            };
-
-            document.getElementById('speak').addEventListener('click', function() {
+                
                 recognition.start();
-            });
-}
+                recognition.onresult = (event) => {
+                    var transcript = event.results[0][0].transcript;
+                    // document.getElementById('search_bar').value = transcript;
+                    var apigClient = apigClientFactory.newClient({
+                        apiKey: 'OHZMy4Q5Ng8vJI3OnekBg7xso1y9jox54gnA6h1P'
+                    });
 
+                    var params = {
+                        q: transcript
+                    };
+
+                    console.log(transcript);
+                    apigClient.searchGet(params)
+                    .then(function(result){
+                        console.log('success OK', result);
+                        var photos = result.data.body;
+                        displayImages(photos);
+                    }).catch(function(error){
+                        console.log('error', error);
+                    });
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('Speech recognition error', event.error);
+                };
+            }
         }
+
     </script>
 </body>
 
