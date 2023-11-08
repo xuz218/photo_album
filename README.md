@@ -17,10 +17,10 @@ Checklist:
    [front.html](./front.html)  
 3. All Lambda Functions:
    - included in the folder: lambda functions
-5. YAML file for cloud recognition:  
-   [project_swagger.yaml]
+5. YAML file for CloudFormation:  
+   [photo_album.yaml](./photo_album.yaml)  
 6. A readme file containing the names and unis of you and your teammates along with the S3 frontend URL:  
-   [README.md](./README.md)   
+   [README.md](./README.md)  
 
 ## Usage ##
 
