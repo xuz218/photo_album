@@ -1,0 +1,866 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Metadata:
+    Generator: "former2"
+Description: ""
+Resources:
+    LambdaFunction:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Description: ""
+            FunctionName: !Sub "search-${OpenSearchServiceDomain}"
+            Handler: "lambda_function.lambda_handler"
+            Architectures: 
+              - "x86_64"
+            Code: 
+                S3Bucket: "prod-iad-c1-djusa-tasks"
+                S3Key: !Sub "/snapshots/129016807289/search-${OpenSearchServiceDomain}-53653b9d-413f-45d7-997f-2b1f5e8d6914"
+                S3ObjectVersion: "gcNP7RRdgq7sZ.xrDiijUGGq3O98VfxO"
+            MemorySize: 128
+            Role: !Sub "arn:aws:iam::129016807289:role/service-role/search-${OpenSearchServiceDomain}-role-fw6gmrsd"
+            Runtime: "python3.11"
+            Timeout: 180
+            TracingConfig: 
+                Mode: "PassThrough"
+            EphemeralStorage: 
+                Size: 512
+
+    LambdaFunction2:
+        Type: "AWS::Lambda::Function"
+        Properties:
+            Description: ""
+            FunctionName: !Sub "index-${OpenSearchServiceDomain}"
+            Handler: "lambda_function.lambda_handler"
+            Architectures: 
+              - "x86_64"
+            Code: 
+                S3Bucket: "prod-iad-c1-djusa-tasks"
+                S3Key: !Sub "/snapshots/129016807289/index-${OpenSearchServiceDomain}-c9197b3b-ea6d-47bc-a7a1-69b7fc34b53c"
+                S3ObjectVersion: "XaqX.u2W5jHSp7jCfy.TOrza.8TXAzTo"
+            MemorySize: 128
+            Role: !Sub "arn:aws:iam::129016807289:role/service-role/index-${OpenSearchServiceDomain}-role-73xxp0mq"
+            Runtime: "python3.11"
+            Timeout: 120
+            TracingConfig: 
+                Mode: "PassThrough"
+            EphemeralStorage: 
+                Size: 512
+
+    LambdaPermission:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            Action: "lambda:InvokeFunction"
+            FunctionName: !GetAtt LambdaFunction.Arn
+            Principal: "apigateway.amazonaws.com"
+            SourceArn: !Sub "arn:aws:execute-api:${AWS::Region}:129016807289:${ApiGatewayRestApi}/*/GET/search"
+
+    LambdaPermission2:
+        Type: "AWS::Lambda::Permission"
+        Properties:
+            Action: "lambda:InvokeFunction"
+            FunctionName: !GetAtt LambdaFunction2.Arn
+            Principal: "s3.amazonaws.com"
+            SourceArn: !Sub "arn:aws:s3:::${S3Bucket2}"
+
+    S3Bucket:
+        Type: "AWS::S3::Bucket"
+        Properties:
+            BucketName: !Sub "${OpenSearchServiceDomain}-s3-bucket-b1-6998"
+            BucketEncryption: 
+                ServerSideEncryptionConfiguration: 
+                  - 
+                    ServerSideEncryptionByDefault: 
+                        SSEAlgorithm: "AES256"
+                    BucketKeyEnabled: true
+            WebsiteConfiguration: 
+                IndexDocument: "front.html"
+            OwnershipControls: 
+                Rules: 
+                  - 
+                    ObjectOwnership: "BucketOwnerEnforced"
+            PublicAccessBlockConfiguration: 
+                BlockPublicAcls: false
+                BlockPublicPolicy: false
+                IgnorePublicAcls: false
+                RestrictPublicBuckets: false
+
+    S3Bucket2:
+        Type: "AWS::S3::Bucket"
+        Properties:
+            BucketName: !Sub "${OpenSearchServiceDomain}-s3-bucket-b2-6998"
+            BucketEncryption: 
+                ServerSideEncryptionConfiguration: 
+                  - 
+                    ServerSideEncryptionByDefault: 
+                        SSEAlgorithm: "AES256"
+                    BucketKeyEnabled: true
+            NotificationConfiguration: 
+                LambdaConfigurations: 
+                  - 
+                    Event: "s3:ObjectCreated:Put"
+                    Function: !GetAtt LambdaFunction2.Arn
+            WebsiteConfiguration: 
+                IndexDocument: "index.html"
+            OwnershipControls: 
+                Rules: 
+                  - 
+                    ObjectOwnership: "BucketOwnerEnforced"
+            PublicAccessBlockConfiguration: 
+                BlockPublicAcls: false
+                BlockPublicPolicy: false
+                IgnorePublicAcls: false
+                RestrictPublicBuckets: false
+
+    S3BucketPolicy:
+        Type: "AWS::S3::BucketPolicy"
+        Properties:
+            Bucket: !Ref S3Bucket
+            PolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                  - 
+                    Sid: "PublicReadGetObject"
+                    Effect: "Allow"
+                    Principal: "*"
+                    Action: "s3:GetObject"
+                    Resource: !Sub "arn:aws:s3:::${S3Bucket}/*"
+
+    S3BucketPolicy2:
+        Type: "AWS::S3::BucketPolicy"
+        Properties:
+            Bucket: !Ref S3Bucket2
+            PolicyDocument: 
+                Version: "2012-10-17"
+                Statement: 
+                  - 
+                    Sid: "PublicReadGetObject"
+                    Effect: "Allow"
+                    Principal: "*"
+                    Action: "s3:GetObject"
+                    Resource: !Sub "arn:aws:s3:::${S3Bucket2}/*"
+
+    ApiGatewayRestApi:
+        Type: "AWS::ApiGateway::RestApi"
+        Properties:
+            Name: "AI Photo Search"
+            Description: "AI Photo Search application, built during the Cloud and Big Data course at Columbia University."
+            ApiKeySourceType: "HEADER"
+            BinaryMediaTypes: 
+              - "image/jpeg"
+              - "image/png"
+              - "image/jpg"
+            EndpointConfiguration: 
+                Types: 
+                  - "REGIONAL"
+
+    ApiGatewayStage:
+        Type: "AWS::ApiGateway::Stage"
+        Properties:
+            StageName: "stage1"
+            DeploymentId: "39wixp"
+            RestApiId: !Ref ApiGatewayRestApi
+            CacheClusterEnabled: false
+            CacheClusterSize: "0.5"
+            TracingEnabled: false
+
+    ApiGatewayDeployment:
+        Type: "AWS::ApiGateway::Deployment"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+
+    ApiGatewayResource:
+        Type: "AWS::ApiGateway::Resource"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            PathPart: "{bucket}"
+            ParentId: !Ref ApiGatewayResource2
+
+    ApiGatewayResource2:
+        Type: "AWS::ApiGateway::Resource"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            PathPart: "upload"
+            ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+
+    ApiGatewayResource3:
+        Type: "AWS::ApiGateway::Resource"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            PathPart: "search"
+            ParentId: !GetAtt ApiGatewayRestApi.RootResourceId
+
+    ApiGatewayResource4:
+        Type: "AWS::ApiGateway::Resource"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            PathPart: "{filename}"
+            ParentId: !Ref ApiGatewayResource
+
+    ApiGatewayMethod:
+        Type: "AWS::ApiGateway::Method"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            ResourceId: !Ref ApiGatewayResource3
+            HttpMethod: "GET"
+            AuthorizationType: "NONE"
+            ApiKeyRequired: false
+            OperationName: "searchPhotos"
+            RequestParameters: 
+                "method.request.querystring.q": false
+            MethodResponses: 
+              - 
+                ResponseModels: 
+                    "application/json": "SearchResponse"
+                ResponseParameters: 
+                    "method.response.header.Access-Control-Allow-Origin": false
+                StatusCode: "200"
+              - 
+                ResponseModels: 
+                    "application/json": "Error"
+                StatusCode: "403"
+              - 
+                ResponseModels: 
+                    "application/json": "Error"
+                StatusCode: "500"
+            Integration: 
+                CacheNamespace: !Ref ApiGatewayResource3
+                Credentials: !Sub "arn:aws:iam::129016807289:role/service-role/${LambdaFunction}-role-fw6gmrsd"
+                IntegrationHttpMethod: "POST"
+                IntegrationResponses: 
+                  - 
+                    ResponseParameters: 
+                        "method.response.header.Access-Control-Allow-Origin": "'*'"
+                    ResponseTemplates: {}
+                    StatusCode: "200"
+                PassthroughBehavior: "WHEN_NO_MATCH"
+                RequestParameters: 
+                    "integration.request.querystring.q": "method.request.querystring.q"
+                RequestTemplates: 
+                    "application/json": |
+                        ##  See https://docs.aws.amazon.com/apigateway/latest/developerguide/api-gateway-mapping-template-reference.html
+                        ##  This template will pass through all parameters including path, querystring, header, stage variables, and context through to the integration endpoint via the body/payload
+                        #set($allParams = $input.params())
+                        {
+                        "body-json" : $input.json('$'),
+                        "params" : {
+                        #foreach($type in $allParams.keySet())
+                            #set($params = $allParams.get($type))
+                        "$type" : {
+                            #foreach($paramName in $params.keySet())
+                            "$paramName" : "$util.escapeJavaScript($params.get($paramName))"
+                                #if($foreach.hasNext),#end
+                            #end
+                        }
+                            #if($foreach.hasNext),#end
+                        #end
+                        },
+                        "stage-variables" : {
+                        #foreach($key in $stageVariables.keySet())
+                        "$key" : "$util.escapeJavaScript($stageVariables.get($key))"
+                            #if($foreach.hasNext),#end
+                        #end
+                        },
+                        "context" : {
+                            "account-id" : "$context.identity.accountId",
+                            "api-id" : "$context.apiId",
+                            "api-key" : "$context.identity.apiKey",
+                            "authorizer-principal-id" : "$context.authorizer.principalId",
+                            "caller" : "$context.identity.caller",
+                            "cognito-authentication-provider" : "$context.identity.cognitoAuthenticationProvider",
+                            "cognito-authentication-type" : "$context.identity.cognitoAuthenticationType",
+                            "cognito-identity-id" : "$context.identity.cognitoIdentityId",
+                            "cognito-identity-pool-id" : "$context.identity.cognitoIdentityPoolId",
+                            "http-method" : "$context.httpMethod",
+                            "stage" : "$context.stage",
+                            "source-ip" : "$context.identity.sourceIp",
+                            "user" : "$context.identity.user",
+                            "user-agent" : "$context.identity.userAgent",
+                            "user-arn" : "$context.identity.userArn",
+                            "request-id" : "$context.requestId",
+                            "resource-id" : "$context.resourceId",
+                            "resource-path" : "$context.resourcePath"
+                            }
+                        }
+                TimeoutInMillis: 29000
+                Type: "AWS"
+                Uri: !Sub "arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/arn:aws:lambda:${AWS::Region}:129016807289:function:${LambdaFunction}/invocations"
+
+    ApiGatewayMethod2:
+        Type: "AWS::ApiGateway::Method"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            ResourceId: !Ref ApiGatewayResource4
+            HttpMethod: "OPTIONS"
+            AuthorizationType: "NONE"
+            ApiKeyRequired: false
+            RequestParameters: {}
+            MethodResponses: 
+              - 
+                ResponseParameters: 
+                    "method.response.header.Access-Control-Allow-Headers": false
+                    "method.response.header.Access-Control-Allow-Methods": false
+                    "method.response.header.Access-Control-Allow-Origin": false
+                StatusCode: "200"
+            Integration: 
+                CacheNamespace: !Ref ApiGatewayResource4
+                IntegrationResponses: 
+                  - 
+                    ResponseParameters: 
+                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token,x-amz-meta-customLabels'"
+                        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,PUT'"
+                        "method.response.header.Access-Control-Allow-Origin": "'*'"
+                    StatusCode: "200"
+                PassthroughBehavior: "WHEN_NO_MATCH"
+                RequestTemplates: 
+                    "application/json": "{\"statusCode\": 200}"
+                TimeoutInMillis: 29000
+                Type: "MOCK"
+
+    ApiGatewayMethod3:
+        Type: "AWS::ApiGateway::Method"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            ResourceId: !Ref ApiGatewayResource3
+            HttpMethod: "OPTIONS"
+            AuthorizationType: "NONE"
+            ApiKeyRequired: false
+            RequestParameters: {}
+            MethodResponses: 
+              - 
+                ResponseParameters: 
+                    "method.response.header.Access-Control-Allow-Headers": false
+                    "method.response.header.Access-Control-Allow-Methods": false
+                    "method.response.header.Access-Control-Allow-Origin": false
+                StatusCode: "200"
+            Integration: 
+                CacheNamespace: !Ref ApiGatewayResource3
+                IntegrationResponses: 
+                  - 
+                    ResponseParameters: 
+                        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
+                        "method.response.header.Access-Control-Allow-Methods": "'GET,OPTIONS'"
+                        "method.response.header.Access-Control-Allow-Origin": "'*'"
+                    StatusCode: "200"
+                PassthroughBehavior: "WHEN_NO_MATCH"
+                RequestTemplates: 
+                    "application/json": "{\"statusCode\": 200}"
+                TimeoutInMillis: 29000
+                Type: "MOCK"
+
+    ApiGatewayMethod4:
+        Type: "AWS::ApiGateway::Method"
+        Properties:
+            RestApiId: !Ref ApiGatewayRestApi
+            ResourceId: !Ref ApiGatewayResource4
+            HttpMethod: "PUT"
+            AuthorizationType: "NONE"
+            ApiKeyRequired: false
+            RequestParameters: 
+                "method.request.header.x-amz-meta-customLabels": false
+                "method.request.path.bucket": true
+                "method.request.path.filename": true
+            MethodResponses: 
+              - 
+                ResponseParameters: 
+                    "method.response.header.Access-Control-Allow-Origin": false
+                StatusCode: "200"
+            Integration: 
+                CacheNamespace: !Ref ApiGatewayResource4
+                Credentials: !GetAtt IAMRole.Arn
+                IntegrationHttpMethod: "PUT"
+                IntegrationResponses: 
+                  - 
+                    ResponseParameters: 
+                        "method.response.header.Access-Control-Allow-Origin": "'*'"
+                    ResponseTemplates: {}
+                    StatusCode: "200"
+                PassthroughBehavior: "WHEN_NO_MATCH"
+                RequestParameters: 
+                    "integration.request.header.x-amz-meta-customLabels": "method.request.header.x-amz-meta-customLabels"
+                    "integration.request.path.bucket": "method.request.path.bucket"
+                    "integration.request.path.key": "method.request.path.filename"
+                RequestTemplates: 
+                    "image/*": |
+                        {
+                          "type" : "object",
+                          "properties" : {
+                            "url" : {
+                              "type" : "string"
+                            },
+                            "labels" : {
+                              "type" : "array",
+                              "items" : {
+                                "type" : "string"
+                              }
+                            }
+                          }
+                        }
+                TimeoutInMillis: 29000
+                Type: "AWS"
+                Uri: !Sub "arn:aws:apigateway:${AWS::Region}:s3:path/{bucket}/{key}"
+
+    ApiGatewayApiKey:
+        Type: "AWS::ApiGateway::ApiKey"
+        Properties:
+            Enabled: true
+            Name: "yx2812"
+
+    OpenSearchServiceDomain:
+        Type: "AWS::OpenSearchService::Domain"
+        Properties:
+            DomainName: "photos"
+            EngineVersion: "OpenSearch_2.9"
+            ClusterConfig: 
+                ColdStorageOptions: 
+                    Enabled: false
+                DedicatedMasterEnabled: false
+                InstanceCount: 1
+                InstanceType: "t3.small.elasticsearch"
+                ZoneAwarenessEnabled: false
+                WarmEnabled: false
+            AccessPolicies: !Sub "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"AWS\":\"*\"},\"Action\":\"es:*\",\"Resource\":\"arn:aws:es:${AWS::Region}:129016807289:domain/photos/*\"}]}"
+            SnapshotOptions: {}
+            snapshot_options: {}
+            EncryptionAtRestOptions: 
+                Enabled: true
+                KmsKeyId: !Sub "arn:aws:kms:${AWS::Region}:129016807289:key/85921621-600f-4da4-96a6-c2cd912cf480"
+            NodeToNodeEncryptionOptions: 
+                Enabled: true
+            AdvancedOptions: 
+                "indices.fielddata.cache.size": "20"
+                "indices.query.bool.max_clause_count": "1024"
+                override_main_response_version: "false"
+                "rest.action.multi.allow_explicit_index": "true"
+            EBSOptions: 
+                EBSEnabled: true
+                VolumeType: "gp3"
+                VolumeSize: 10
+                Iops: 3000
+                Throughput: 125
+            CognitoOptions: 
+                Enabled: false
+            DomainEndpointOptions: 
+                EnforceHTTPS: true
+                TLSSecurityPolicy: "Policy-Min-TLS-1-0-2019-07"
+                CustomEndpointEnabled: false
+            AdvancedSecurityOptions: 
+                Enabled: true
+                InternalUserDatabaseEnabled: false
+                AnonymousAuthEnabled: false
+
+    IAMRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            Path: "/"
+            RoleName: "api-gateway-upload-to-s3"
+            AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Sid\":\"\",\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"apigateway.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+            MaxSessionDuration: 3600
+            ManagedPolicyArns: 
+              - !Ref IAMManagedPolicy3
+              - "arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs"
+            Description: "Allows API Gateway to push logs to CloudWatch Logs."
+
+    IAMRole2:
+        Type: "AWS::IAM::Role"
+        Properties:
+            Path: "/service-role/"
+            RoleName: !Sub "${LambdaFunction2}-role-73xxp0mq"
+            AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":\"lambda.amazonaws.com\"},\"Action\":\"sts:AssumeRole\"}]}"
+            MaxSessionDuration: 3600
+            ManagedPolicyArns: 
+              - !Ref IAMManagedPolicy
+              - "arn:aws:iam::aws:policy/AmazonRekognitionFullAccess"
+              - "arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess"
+
+    IAMRole3:
+        Type: "AWS::IAM::Role"
+        Properties:
+            Path: "/service-role/"
+            RoleName: !Sub "${LambdaFunction}-role-fw6gmrsd"
+            AssumeRolePolicyDocument: "{\"Version\":\"2012-10-17\",\"Statement\":[{\"Effect\":\"Allow\",\"Principal\":{\"Service\":[\"apigateway.amazonaws.com\",\"lambda.amazonaws.com\"]},\"Action\":\"sts:AssumeRole\"}]}"
+            MaxSessionDuration: 3600
+            ManagedPolicyArns: 
+              - !Ref IAMManagedPolicy4
+              - "arn:aws:iam::aws:policy/service-role/AWSLambdaRole"
+              - "arn:aws:iam::aws:policy/AmazonLexFullAccess"
+              - "arn:aws:iam::aws:policy/AmazonAPIGatewayInvokeFullAccess"
+              - "arn:aws:iam::aws:policy/AmazonOpenSearchServiceFullAccess"
+
+    IAMManagedPolicy:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: "AWSLambdaBasicExecutionRole-18b35aaa-5cc3-423a-9c8a-cc40fe5dc104"
+            Path: "/service-role/"
+            PolicyDocument: !Sub |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "logs:CreateLogGroup",
+                            "Resource": "arn:aws:logs:${AWS::Region}:129016807289:*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": [
+                                "arn:aws:logs:${AWS::Region}:129016807289:log-group:/aws/lambda/${LambdaFunction2}:*"
+                            ]
+                        }
+                    ]
+                }
+
+    IAMManagedPolicy2:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: !Sub "CodeBuildBasePolicy-pipeline-p1-${AWS::Region}"
+            Path: "/service-role/"
+            PolicyDocument: !Sub |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Resource": [
+                                "arn:aws:logs:${AWS::Region}:129016807289:log-group:/aws/codebuild/pipeline-p1",
+                                "arn:aws:logs:${AWS::Region}:129016807289:log-group:/aws/codebuild/pipeline-p1:*"
+                            ],
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Resource": [
+                                "arn:aws:s3:::codepipeline-${AWS::Region}-*"
+                            ],
+                            "Action": [
+                                "s3:PutObject",
+                                "s3:GetObject",
+                                "s3:GetObjectVersion",
+                                "s3:GetBucketAcl",
+                                "s3:GetBucketLocation"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codebuild:CreateReportGroup",
+                                "codebuild:CreateReport",
+                                "codebuild:UpdateReport",
+                                "codebuild:BatchPutTestCases",
+                                "codebuild:BatchPutCodeCoverages"
+                            ],
+                            "Resource": [
+                                "arn:aws:codebuild:${AWS::Region}:129016807289:report-group/pipeline-p1-*"
+                            ]
+                        }
+                    ]
+                }
+
+    IAMManagedPolicy3:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: "apigw-to-s3-b2"
+            Path: "/"
+            PolicyDocument: !Sub |
+                {
+                	"Version": "2012-10-17",
+                	"Statement": [
+                		{
+                			"Sid": "VisualEditor0",
+                			"Effect": "Allow",
+                			"Action": "s3:PutObject",
+                			"Resource": "arn:aws:s3:::${S3Bucket2}/*"
+                		}
+                	]
+                }
+
+    IAMManagedPolicy4:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: "AWSLambdaBasicExecutionRole-75f56510-2b6a-4b21-a86b-c02163845e9f"
+            Path: "/service-role/"
+            PolicyDocument: !Sub |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "logs:CreateLogGroup",
+                            "Resource": "arn:aws:logs:${AWS::Region}:129016807289:*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": [
+                                "arn:aws:logs:${AWS::Region}:129016807289:log-group:/aws/lambda/${LambdaFunction}:*"
+                            ]
+                        }
+                    ]
+                }
+
+    IAMManagedPolicy5:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: "AWSLambdaBasicExecutionRole-ca926381-eaae-48c8-bd80-60a26af68978"
+            Path: "/service-role/"
+            PolicyDocument: !Sub |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Action": "logs:CreateLogGroup",
+                            "Resource": "arn:aws:logs:${AWS::Region}:129016807289:*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ],
+                            "Resource": [
+                                "arn:aws:logs:${AWS::Region}:129016807289:log-group:/aws/lambda/serch-${OpenSearchServiceDomain}:*"
+                            ]
+                        }
+                    ]
+                }
+
+    IAMManagedPolicy6:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: !Sub "CodeBuildBasePolicy-pipeline-p2-${AWS::Region}"
+            Path: "/service-role/"
+            PolicyDocument: !Sub |
+                {
+                    "Version": "2012-10-17",
+                    "Statement": [
+                        {
+                            "Effect": "Allow",
+                            "Resource": [
+                                "arn:aws:logs:${AWS::Region}:129016807289:log-group:/aws/codebuild/pipeline-p2",
+                                "arn:aws:logs:${AWS::Region}:129016807289:log-group:/aws/codebuild/pipeline-p2:*"
+                            ],
+                            "Action": [
+                                "logs:CreateLogGroup",
+                                "logs:CreateLogStream",
+                                "logs:PutLogEvents"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Resource": [
+                                "arn:aws:s3:::codepipeline-${AWS::Region}-*"
+                            ],
+                            "Action": [
+                                "s3:PutObject",
+                                "s3:GetObject",
+                                "s3:GetObjectVersion",
+                                "s3:GetBucketAcl",
+                                "s3:GetBucketLocation"
+                            ]
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "codebuild:CreateReportGroup",
+                                "codebuild:CreateReport",
+                                "codebuild:UpdateReport",
+                                "codebuild:BatchPutTestCases",
+                                "codebuild:BatchPutCodeCoverages"
+                            ],
+                            "Resource": [
+                                "arn:aws:codebuild:${AWS::Region}:129016807289:report-group/pipeline-p2-*"
+                            ]
+                        }
+                    ]
+                }
+
+    IAMManagedPolicy7:
+        Type: "AWS::IAM::ManagedPolicy"
+        Properties:
+            ManagedPolicyName: !Sub "AWSCodePipelineServiceRole-${AWS::Region}-${OpenSearchServiceDomain}-album-p1"
+            Path: "/service-role/"
+            PolicyDocument: |
+                {
+                    "Statement": [
+                        {
+                            "Action": [
+                                "iam:PassRole"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow",
+                            "Condition": {
+                                "StringEqualsIfExists": {
+                                    "iam:PassedToService": [
+                                        "cloudformation.amazonaws.com",
+                                        "elasticbeanstalk.amazonaws.com",
+                                        "ec2.amazonaws.com",
+                                        "ecs-tasks.amazonaws.com"
+                                    ]
+                                }
+                            }
+                        },
+                        {
+                            "Action": [
+                                "codecommit:CancelUploadArchive",
+                                "codecommit:GetBranch",
+                                "codecommit:GetCommit",
+                                "codecommit:GetRepository",
+                                "codecommit:GetUploadArchiveStatus",
+                                "codecommit:UploadArchive"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Action": [
+                                "codedeploy:CreateDeployment",
+                                "codedeploy:GetApplication",
+                                "codedeploy:GetApplicationRevision",
+                                "codedeploy:GetDeployment",
+                                "codedeploy:GetDeploymentConfig",
+                                "codedeploy:RegisterApplicationRevision"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Action": [
+                                "codestar-connections:UseConnection"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Action": [
+                                "elasticbeanstalk:*",
+                                "ec2:*",
+                                "elasticloadbalancing:*",
+                                "autoscaling:*",
+                                "cloudwatch:*",
+                                "s3:*",
+                                "sns:*",
+                                "cloudformation:*",
+                                "rds:*",
+                                "sqs:*",
+                                "ecs:*"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Action": [
+                                "lambda:InvokeFunction",
+                                "lambda:ListFunctions"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Action": [
+                                "opsworks:CreateDeployment",
+                                "opsworks:DescribeApps",
+                                "opsworks:DescribeCommands",
+                                "opsworks:DescribeDeployments",
+                                "opsworks:DescribeInstances",
+                                "opsworks:DescribeStacks",
+                                "opsworks:UpdateApp",
+                                "opsworks:UpdateStack"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Action": [
+                                "cloudformation:CreateStack",
+                                "cloudformation:DeleteStack",
+                                "cloudformation:DescribeStacks",
+                                "cloudformation:UpdateStack",
+                                "cloudformation:CreateChangeSet",
+                                "cloudformation:DeleteChangeSet",
+                                "cloudformation:DescribeChangeSet",
+                                "cloudformation:ExecuteChangeSet",
+                                "cloudformation:SetStackPolicy",
+                                "cloudformation:ValidateTemplate"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Action": [
+                                "codebuild:BatchGetBuilds",
+                                "codebuild:StartBuild",
+                                "codebuild:BatchGetBuildBatches",
+                                "codebuild:StartBuildBatch"
+                            ],
+                            "Resource": "*",
+                            "Effect": "Allow"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "devicefarm:ListProjects",
+                                "devicefarm:ListDevicePools",
+                                "devicefarm:GetRun",
+                                "devicefarm:GetUpload",
+                                "devicefarm:CreateUpload",
+                                "devicefarm:ScheduleRun"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "servicecatalog:ListProvisioningArtifacts",
+                                "servicecatalog:CreateProvisioningArtifact",
+                                "servicecatalog:DescribeProvisioningArtifact",
+                                "servicecatalog:DeleteProvisioningArtifact",
+                                "servicecatalog:UpdateProduct"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "cloudformation:ValidateTemplate"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "ecr:DescribeImages"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "states:DescribeExecution",
+                                "states:DescribeStateMachine",
+                                "states:StartExecution"
+                            ],
+                            "Resource": "*"
+                        },
+                        {
+                            "Effect": "Allow",
+                            "Action": [
+                                "appconfig:StartDeployment",
+                                "appconfig:StopDeployment",
+                                "appconfig:GetDeployment"
+                            ],
+                            "Resource": "*"
+                        }
+                    ],
+                    "Version": "2012-10-17"
+                }
+
