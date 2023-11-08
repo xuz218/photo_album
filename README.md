@@ -28,3 +28,4 @@ Checklist:
 2. Upload images with or without custom labels.
 3. Search with the query by text or voice
 
+![photo_album](./photo_album.png)
