@@ -169,11 +169,8 @@
                 q: searchTerm
             };
 
-            var body = {};
-            var additionalParams = {};
-
             console.log(searchTerm);
-            apigClient.searchGet(params, body, additionalParams)
+            apigClient.searchGet(params)
             .then(function(result){
                 console.log('success OK');
                 console.log(result)
